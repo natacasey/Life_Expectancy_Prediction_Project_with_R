@@ -1,0 +1,1097 @@
+---
+title: "Project Life Expectancy"
+author: "Natallia Casey"
+date: "2/11/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+LED<-read.csv("Life Expectancy Data.csv")
+library(ggplot2)
+library ("pastecs")
+library(dplyr)
+library(gridExtra)
+library(QuantPsyc)
+library(car)
+library(pheatmap)
+```
+
+# Description of steps taken for analysis of the variables possibly influencing  life expectancy.
+
+## Checking the class of the object I opened  to confirm it is a data frame. 
+
+```{r echo=FALSE,comment=NA}
+cat(class(LED))
+```
+
+## Checking the dimensions of the imported data to make sure the number of rows and columns coincides with the original version.
+
+```{r echo=FALSE, comment=NA}
+cat(dim(LED))
+```
+
+The dimensions are the same as those of the original data set.
+
+## Looking at the names of the columns to make sure they are readable and look good.
+
+```{r echo=FALSE, comment=NA}
+names(LED)
+```
+
+I would like all of the names to start with **capital letter**, and also remove the **extra period** for the name "thinness..1.19.years". 
+
+**Updated names of the columns**
+
+```{r echo = FALSE, comment = NA}
+names(LED %>% 
+  rename(
+    Thinness.1.19.years = thinness..1.19.years,
+    Infant.deaths= infant.deaths,
+    Percentage.expenditure=percentage.expenditure,
+    Under.five.deaths=under.five.deaths,
+    Thinness.5.9.years=thinness.5.9.years
+  ))
+  
+```
+
+
+## Looking at the data type information
+
+```{r echo=FALSE, comment=NA}
+str(LED)
+```
+
+The variables of the data set are mostly of **numeric**, **integer**, and **factor** types.
+
+## Summery statistics and missing values for each of the variables 
+
+```{r echo=FALSE, comment=NA}
+sumled<-summary(LED)
+sumled
+```
+
+Since the **questions I originally formulated** include only a few variables, I will be focusing my analysis on these 6 variables. 
+
+**Number of missing values for Life.expectancy:**
+
+```{r echo=FALSE, comment=NA}
+lifeexpectancyna<-data.matrix(sumled)[7, 4]
+cat(lifeexpectancyna)
+```
+
+**Number of missing values for Alcohol:**
+
+```{r echo=FALSE, comment=NA}
+alcoholna<-data.matrix(sumled)[7, 7]
+cat(alcoholna)
+```
+
+**Number of missing values for BMI:**
+
+```{r echo=FALSE, comment=NA}
+BMIna<-data.matrix(sumled)[7, 11]
+cat(BMIna)
+```
+
+**Number of missing values for Total.expenditure:**
+
+```{r echo=FALSE, comment=NA}
+expenditurena<-data.matrix(sumled)[7, 14]
+cat(expenditurena)
+```
+
+**Number of missing values for Schooling:**
+
+```{r echo=FALSE, comment=NA}
+schoolingna<-data.matrix(sumled)[7, 22]
+cat(schoolingna)
+```
+
+**Number of missing values for Population:**
+
+```{r echo=FALSE, comment=NA}
+populationna<-data.matrix(sumled)[7, 18]
+cat(populationna)
+```
+
+## Looking at the variable Population closer
+
+The number of NA is 652, which is high. Also, if we print out a few observations we can see that the values of population for different years for the same country differ greatly. At times an 8-digit number for one year and a 6-digit number for another. There are even more extreme differences present for the population for the same country throughout the data set which happens for almost every country. This means a lot of data about the population is incorrect.
+
+```{r echo=FALSE, comment = NA}
+Popset<-LED[,c("Country", "Year","Population")]    
+tail(Popset)
+```
+
+
+I decided not to include Population in my project due to the fact that there are a lot of observations missing and quite a bit of data is invalid. I compared the data on the website [kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who) that describes the variables of this data set to what I see in my data, and the errors I see are true for the dataset on [kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who), which means these errors couldn't have happened when I was importing the data, they were already in the data set. 
+
+## Choosing the variables that I need to answer the questions I have and creating a new data frame that has no missing values. Presenting it in a condensed way.
+
+```{r echo=FALSE, comment = NA}
+LED_subset<- LED[ ,c("Alcohol", "Life.expectancy", "Total.expenditure", "BMI", "Schooling")]
+data_by_column <- LED[complete.cases(LED_subset), ] # Omit NAs by columns
+newdataset<- data_by_column[,c(4,7,11,14,22)] 
+head(newdataset)
+
+```
+
+## Summary statistics and proof of absence of missing values
+
+```{r echo=FALSE, comment = NA}
+sumbycolumn<-summary(newdataset)  
+sumbycolumn
+```
+
+**Dimensions of the new data set: the first number represents the number of rows and the second number - the number of columns**
+
+```{r echo=FALSE, comment = NA}
+cat(dim(newdataset))
+```
+
+# Looking for outliers
+
+## Creating boxplots for the 5 variables we need to see if we have some possible outliers
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+par( mfrow=c(2,3)) 
+boxplot(data_by_column$Life.expectancy, main = "Life.expectancy") 
+boxplot(data_by_column$Alcohol, main = "Alcohol")
+boxplot(data_by_column$Total.expenditure, main = "Total.expenditure")
+boxplot(data_by_column$BMI, main = "BMI")
+boxplot(data_by_column$Schooling, main = "Schooling") 
+```
+
+
+## Looking at each of the variables highest and lowest values to find potential errors in the data
+
+**Highest 20 values for Life.expectancy:**
+
+```{r echo=FALSE, comment = NA}
+Life_expectancy_tophead<- head(newdataset[order(-newdataset$Life.expectancy),], 20)
+cat(Life_expectancy_tophead[,1])
+```
+
+**Lowest 10 values for Life.expectancy:**
+
+```{r echo=FALSE, comment = NA}
+Life_expectancy_bottom<- head(newdataset[order(newdataset$Life.expectancy),], 10)
+cat(Life_expectancy_bottom[,1])
+```
+
+The value of 36.3 is very different from what I could find when researching life expectancy for Haiti. Looks like it is a mistake and I will not include it in the data.
+
+
+**Highest 10 values for Alcohol (recorded per capita (15+) consumption (in litres of pure alcohol)):**
+
+```{r echo=FALSE, comment = NA}
+Alcohol_tophead<- head(newdataset[order(-newdataset$Alcohol),], 10)
+cat(Alcohol_tophead[,2])
+```
+
+The highest values seem to be correct after looking up some information about alcohol consumption in Estonia, Belarus and Lithuania.
+
+**Lowest 10 values for Alcohol:**
+
+```{r echo=FALSE, comment = NA}
+Alcohol_bottom<- head(newdataset[order(newdataset$Alcohol),], 10)
+cat(Alcohol_bottom[,2])
+```
+
+The values seem to be correct after checking information on countries of  Mauritania (the dry country), Malawi, and Maldives and etc. that have the lowest values for alcohol consumption according to the data set. 
+
+**Highest 10 values for BMI:**
+
+```{r echo=FALSE, comment = NA}
+BMI_tophead<- head(newdataset[order(-newdataset$BMI),], 10)
+cat(BMI_tophead[,3])
+```
+
+These values are way too high. According to [WHO](https://en.wikipedia.org/wiki/Body_mass_index) BMI over 40 is class III obese. I will remove values over 50 as they are highly unlikely to be correct.
+
+**Lowest 10 values for BMI:**
+
+```{r echo=FALSE, comment = NA}
+BMI_bottom<- head(newdataset[order(newdataset$BMI),], 10)
+cat(BMI_bottom[,3])
+```
+
+These numbers are way too low. BMI of less than 18.5 is considered underweight. I will remove values below 10 as they are highly unlikely to be correct. 
+
+**Highest 10 values for Total.expenditure:**
+
+```{r echo=FALSE, comment = NA}
+Total.expenditure_tophead<- head(newdataset[order(-newdataset$Total.expenditure),], 10)
+cat(Total.expenditure_tophead[,4])
+```
+
+**Lowest 10 values for Total.expenditure:**
+
+```{r echo=FALSE, comment = NA}
+Total.expenditure_bottom<- head(newdataset[order(newdataset$Total.expenditure),], 10)
+cat(Total.expenditure_bottom[,4])
+```
+
+These values seem to be within possible boundaries.
+
+**Highest 10 values for Schooling:**
+
+```{r echo=FALSE, comment = NA}
+Schooling_tophead<- head(newdataset[order(-newdataset$Schooling),], 10)
+cat(Schooling_tophead[,5])
+```
+
+**Lowest 20 values for Schooling:**
+
+```{r echo=FALSE, comment = NA}
+Schooling_bottom<- head(newdataset[order(newdataset$Schooling),], 20)
+cat(Schooling_bottom[,5])
+```
+0 years of schooling is used for a few countries that in practice definitely have greater number of years of school attended on average. For example, Montenegro has 0, which is not the case for this country according to this [article](https://en.wikipedia.org/wiki/Education_in_Montenegro).
+I am removing values that equal to 0.
+
+## Creating a new data set without the errors that were identified earlier. Presenting it in a condensed way.
+
+```{r echo=FALSE, comment = NA}
+newdataset2<-filter(newdataset, BMI > 10 & BMI<50 &  Schooling > 0 & Life.expectancy>37 )
+head(newdataset2)
+```
+
+### Summary statistics for the new data set
+
+```{r echo=FALSE, comment = NA}
+summary(newdataset2)
+```
+
+
+## Visualizing normality of the variables as part of the exploratory data analysis.
+
+### Histogram for the variable Life.expectancy
+
+
+*This sample is large which makes sense to choose histograms as the best way to look at the distribution* 
+
+```{r echo=FALSE, message = FALSE}
+ggplot(newdataset2,  aes(newdataset2$Life.expectancy)) +
+  geom_histogram(binwidth = 1.1, aes(y=..density..), color = "black", fill = "green", alpha = 1 )+
+  labs(title="Density Histogram for Life expectancy", x="Life expectancy (years)", y="Density")+
+  
+  stat_function(fun=dnorm,
+                color="red",
+                args=list( mean=mean(newdataset2$Life.expectancy), 
+                           sd=sd(newdataset2$Life.expectancy)))
+```
+
+The distribution is not symmetrical. It is slightly negatively skewed with a slight negative kurtosis. 
+
+### Probability plot for Life.expectancy
+
+```{r echo=FALSE, message = FALSE}
+qqnorm(newdataset2$Life.expectancy, main = "Probability Plot for Life Expectancy", 
+       xlab = "Norm Quantiles", ylab = "Life expectancy" ) 
+qqline(newdataset2$Life.expectancy)
+```
+
+The plot shows deviations from the normal distribution. The shape of the curvature is indicative of the slight left(negatively) skewed distribution. 
+
+### Quantifying normality for the variable Life.expectancy
+
+```{r echo=FALSE, comment = NA}
+stat.desc(newdataset2$Life.expectancy, basic = FALSE, norm = TRUE)
+```
+
+z-scores for kurtosis - 2.3 and skewedness of -2.5 (both  deviating from the values required for normal distribution confirm that the distribution is slightly negatively skewed with a slight negative kurtosis).
+
+### Histogram for the variable Alcohol
+
+```{r echo=FALSE, message = FALSE}
+ggplot(newdataset2,  aes(newdataset2$Alcohol)) +
+  geom_histogram(binwidth = 1.1, aes(y=..density..), color = "black", fill = "green", alpha = 1 )+
+  labs(title="Density Histogram for variable Alcohol", x="Alcohol consumption", y="Density")+
+  
+  stat_function(fun=dnorm,
+                color="red",
+                args=list( mean=mean(newdataset2$Alcohol), 
+                           sd=sd(newdataset2$Alcohol)))
+```
+
+The distribution is not symmetrical. It is positively skewed.
+
+### Probability plot for the variable Alcohol
+
+```{r echo=FALSE, message = FALSE}
+qqnorm(newdataset2$Alcohol, main = "Probability Plot for Alcohol", 
+       xlab = "Norm Quantiles", ylab = "Alcohol" ) 
+qqline(newdataset2$Alcohol)
+```
+
+The plot shows deviations from the normal distribution. The shape of the curvature is indicative of the positively skewed distribution.
+
+### Quantifying normality for the variable Alcohol
+
+```{r echo=FALSE, comment = NA}
+stat.desc(newdataset2$Alcohol, basic = FALSE, norm = TRUE)
+```
+
+z-score for skewedness of 6.2 is too high and indicates positive skewedness. The z-score for kurtosis is -0.7 and is indicative of a slight negative kurtosis.
+
+### Histogram for the variable Total.expenditure
+
+```{r echo=FALSE, message = FALSE}
+ggplot(newdataset2,  aes(newdataset2$Total.expenditure)) +
+  geom_histogram(  aes(y=..density..), color = "black", fill = "green", alpha = 1 )+
+  labs(title="Density Histogram for Total.expenditure", x="Expenditure on health", y="Density")+
+  
+  stat_function(fun=dnorm,
+                color="red",
+                args=list( mean=mean(newdataset2$Total.expenditure), 
+                           sd=sd(newdataset2$Total.expenditure)))
+```
+
+The distribution is not fully symmetrical. It is positively skewed with a positive kurtosis. 
+
+### Probability plot for the variable Total.expenditure
+
+```{r echo=FALSE, message = FALSE}
+qqnorm(newdataset2$Total.expenditure, main = "Probability Plot for Expenditure on health", 
+       xlab = "Norm Quantiles", ylab = "Health expenditure" ) 
+qqline(newdataset2$Total.expenditure)
+```
+
+The plot shows deviations from the normal distribution. The shape of the curvature is indicative of the positively skewed distribution.
+
+### Quantifying normality for the variable Total.expenditure
+
+```{r echo=FALSE, comment = NA}
+stat.desc(newdataset2$Total.expenditure, basic = FALSE, norm = TRUE)
+```
+
+z-scores for skewedness of 4.9 indicates positive skewedness. The z-score for kurtosis is 4.2 and is indigative of a positive kurtosis.
+
+### Histogram for the variable BMI
+
+```{r echo=FALSE, message = FALSE}
+ggplot(newdataset2,  aes(newdataset2$BMI)) +
+  geom_histogram(binwidth = 1.1, aes(y=..density..), color = "black", fill = "green", alpha = 1 )+
+  labs(title="Density Histogram for variable BMI", x="BMI", y="Density")+
+  
+  stat_function(fun=dnorm,
+                color="red",
+                args=list( mean=mean(newdataset2$BMI), 
+                           sd=sd(newdataset2$BMI)))
+```
+
+The distribution is not symmetrical, and looks bimodal. 
+
+### Probability plot for the variable BMI
+
+```{r echo=FALSE, message = FALSE}
+qqnorm(newdataset2$BMI, main = "Probability Plot for BMI", 
+       xlab = "Norm Quantiles", ylab = "BMI" ) 
+qqline(newdataset2$BMI)
+```
+
+### Quantifying normality for the variable BMI
+
+```{r echo=FALSE, comment = NA}
+stat.desc(newdataset2$BMI, basic = FALSE, norm = TRUE)
+```
+ 
+z-score for skewedness is positive and equals to 2.4 . The z-score for kurtosis is negative and equals to -5.1.
+
+### Histogram for the variable Schooling
+
+```{r echo=FALSE, message = FALSE}
+ggplot(newdataset2,  aes(newdataset2$Schooling)) +
+  geom_histogram(binwidth = 1.1, aes(y=..density..), color = "black", fill = "green", alpha = 1 )+
+  labs(title="Density Histogram for variable Schooling", x="Schooling", y="Density")+
+  
+  stat_function(fun=dnorm,
+                color="red",
+                args=list( mean=mean(newdataset2$Schooling), 
+                           sd=sd(newdataset2$Schooling)))
+```
+
+The distribution looks slightly negatively skewed.
+
+### Probability plot for the variable Schooling 
+
+```{r echo=FALSE, message = FALSE}
+qqnorm(newdataset2$Schooling, main = "Probability Plot for Schooling", 
+       xlab = "Schooling", ylab = "Schooling" ) 
+qqline(newdataset2$Schooling)
+```
+
+
+### Quantifying normality for the variable Schooling
+
+```{r echo=FALSE, comment = NA}
+stat.desc(newdataset2$Schooling, basic = FALSE, norm = TRUE)
+```
+
+z-score for skewedness of -3.5 which indicates negative skewedness. The z-score for kurtosis is -0.5 and is indicative of a very slight negative kurtosis.
+
+## To visualize relationships between all of the variables with Life expectancy I created these scatterplots. 
+
+```{r echo=FALSE, comment = NA}
+p1<-ggplot(newdataset2, aes(y = newdataset2$Life.expectancy, x = newdataset2$Alcohol))+
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect.vs Alcohol")+
+  labs(x = "Alcohol consumption", y = "Life expectancy")
+
+p2<-ggplot(newdataset2, aes(y = newdataset2$Life.expectancy, x = newdataset2$BMI))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect. vs BMI")+
+  labs(x = "BMI", y = "Life expectancy")
+
+p3<-ggplot(newdataset2, aes(y = newdataset2$Life.expectancy, x = newdataset2$Total.expenditure))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.exp. vs Expenditure")+
+  labs(x = "Health expenditure", y = "Life expectancy")
+
+p4<-ggplot(newdataset2, aes(y = newdataset2$Life.expectancy, x = newdataset2$Schooling))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect.vs Schooling ")+
+  labs(x = "Schooling", y = "Life expectancy")
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
+The linearity is best reflected in Life.expectancy vs Schooling scatterplot, and Life.expectancy vs BMI. 
+
+## I would like to build a model to predict life expectancy based on the level of consumption of alcohol, BMI, health expenditure, and schooling:
+
+*With the help of this multiple regression I will test the strength of the relationship between the dependent and each independent variable while the rest of the independent variables are held **constant**.*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+model <- lm(Life.expectancy ~ Schooling + Alcohol + BMI+Total.expenditure, data = newdataset2)
+summary(model)
+```
+
+The F-statistic p-value : < 2.2e-16 is highly significant, 
+which implies at least one of the independent variables is significantly related to the dependent variable.
+R squared statistic explains how much variability in the dependent variable 
+is accounted for by the independent variables. In my case it is **51.3%**
+The *adjusted* R squared at **51.2%** is pretty close to the value of *R squared*. The difference is small, about **0.2%**.
+The shrinkage means that the model derived from a population and not a sample would account for 0.2% less variance in the outcome.
+Using **Stein's formula** I get the version of R squared that equals to 0.5101. 
+The difference between this value and the value of unadjusted R squared is 0.5131-0.5101= 0.003, or about **0.3%** percent.
+This value helps me with cross-validation of the model. The value is very similar to the observed value of R squared, which is a good indicator of a cross validity of the model.
+
+## Examining the estimated coefficients and the t-statistic p-values:
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+summary(model)$coefficient
+```
+
+The column "Estimate" provides estimates for the b-values that give us information 
+about the relationship between the predictors and the dependent variable. 
+Predictors Schooling and BMI have positive b-values which is an indicator of a positive relationship
+Predictors Alcohol and Total.expenditure have negative b-values which indicate a negative relationship. 
+If we look at the p-values we can see that they all are significantly less than .05, 
+thus I can say that all the predictors are significant predictors of this model. 
+By looking at the t-statistic (the third column) I can tell that **Schooling** and **BMI** have the highest impact and Total. expenditure has the lowest impact.
+Since all of these variables use different units of measurement, I am going to look at standardized beta estimates.
+Since standardized betas are directly comparable due to being measured in standard deviation units, 
+they give better information about the "importance" of the independent variables.
+
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+lm.beta(model)
+```
+
+**Schooling**. Standardized beta is `r round(data.matrix(lm.beta(model))[1],3)`.
+This value shows that when Schooling increases by one standard deviation (`r round(sd(newdataset2$Schooling), 2)`),
+life expectancy increases by `r round(data.matrix(lm.beta(model))[1],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset2$Life.expectancy), 2)`, so the change that will be observed is about 5 years (`r round(sd(newdataset2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model))[1],3)`)
+
+**BMI**. Standardized beta is `r round(data.matrix(lm.beta(model))[3],3)`.
+
+This value shows that when BMI increases by one standard deviation (`r round(sd(newdataset2$BMI), 2)`),
+life expectancy increases by `r round(data.matrix(lm.beta(model))[3],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset2$Life.expectancy), 2)`, so the change that will be observed is `r round(sd(newdataset2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model))[3],3)`.
+
+**Alcohol**. Standardized beta is `r round(data.matrix(lm.beta(model))[2],3)`.
+
+This value shows that when Alcohol increases by one standard deviation (`r round(sd(newdataset2$Alcohol), 2)`),
+life expectancy decreases by `r round(data.matrix(lm.beta(model))[2],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset2$Life.expectancy), 2)`, so the change that will be observed is `r round(sd(newdataset2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model))[2],3)`.
+
+**Total.expenditure**. Standardized beta is `r round(data.matrix(lm.beta(model))[4],3)`.
+
+This value shows that when Health expenditure increases by one standard deviation (`r round(sd(newdataset2$Total.expenditure), 2)`),
+life expectancy decreases by `r round(data.matrix(lm.beta(model))[4],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset2$Life.expectancy), 2)`, so the change that will be observed is `r round(sd(newdataset2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model))[4],3)`.
+
+## Checking the confidence intervals
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+confint(model)
+```
+
+*Printing the estimated coefficients so it is easier to compare the results*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+summary(model)$coefficient
+```
+
+None of the confidence intervals cross 0 which means that the predictors are related to the outcome. The confidence intervals are small, which is an indicator of a good model. 
+
+## Casewise diagnostics to identify outliers or influential cases
+
+Showing some of it:
+  
+```{r echo=FALSE, message = FALSE, comment = NA}
+
+newdataset2$residuals<-resid(model)
+newdataset2$standardized.residuals<-rstandard(model)
+newdataset2$studentized.residuals<-rstudent(model)
+newdataset2$cooks.distance<-cooks.distance(model)
+newdataset2$dfbeta<-dfbeta(model)
+newdataset2$dffit<-dffits(model)
+newdataset2$leverage<-hatvalues(model)
+newdataset2$covariance.ratios<-covratio(model)
+new_newdataset2<-newdataset2[,c("Life.expectancy", "Alcohol", "BMI", "Total.expenditure", "Schooling",  "residuals", "standardized.residuals", "studentized.residuals", "cooks.distance", "dfbeta", "dffit", "leverage", "covariance.ratios")]
+
+head(new_newdataset2)
+```
+
+### Looking at the cases with large residuals and identifying the quantity:
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+newdataset2$large.residuals<-newdataset2$standardized.residuals>2 | newdataset2$standardized.residuals< -2
+```
+
+The number of cases with large residuals is `r sum(newdataset2$large.residuals)`.
+
+The calculated number represents `r round(sum(newdataset2$large.residuals) *100/1310, 2)`% of cases which means that the sample is within 1% of what I would expect. 
+
+## Leverage, cooks distance, covariance ratios
+
+**cooks.distance**
+
+Cases with cooks.distance greater than 1:
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+new<-newdataset2[newdataset2$large.residuals,c("Life.expectancy", "Alcohol", "BMI", "Total.expenditure","Schooling","standardized.residuals", "cooks.distance", "leverage", "covariance.ratios" )]
+
+new[new$cooks.distance>1, c("Life.expectancy", "Alcohol", "BMI", "Total.expenditure","Schooling", "cooks.distance")]
+```
+
+There are no cases with cooks.distance greater than 1. 
+
+**leverage**
+
+The average leverage would be calculated as the number of predictors (4) +1 , divided by the size of the sample(1310), which equals to `r (4+1)/1310`. We are looking for the value that is at least 3 times greater than the average leverage (a value that is greater than `r round(3*(5/1310), 4)`)
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+new[new$leverage>0.0115, c("Life.expectancy", "Alcohol", "BMI", "Total.expenditure","Schooling", "leverage")]
+```
+
+It looks like all the cases are within the boundary of three times the average.
+
+**Looking at covariance ratios**
+
+*Top 6 cases with abnormal covariance.ratios with large residuals sorted in ascending order:*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+cov_new<-new[new$covariance.ratios<0.9885 | new$covariance.ratios>1.0115, c ("Life.expectancy", "Alcohol", "BMI", "Total.expenditure","Schooling","covariance.ratios")]
+head(cov_new[order(cov_new$covariance.ratios),])
+```
+
+*Top 6 cases with covariance.ratios not within normal range  and with large residuals sorted in the descending order*:
+
+```{r echo=FALSE, comment=NA}
+
+head(cov_new[order(-cov_new$covariance.ratios),])
+```
+
+Some of the values barely exceed the boundaries (0.9885 - 1.0115).  No cases of real concern.
+
+## Testing for multicollinearity
+
+**VIF**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+vif(model)
+```
+
+None of the VIF are greater than 10.
+
+**Average of VIF**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+mean(vif(model))
+```
+
+The average of VIF values is not substantially greater than 1, which helps us make a conclusion that there is no collinearity within the data.
+
+**Tolerance**
+```{r echo=FALSE, message = FALSE, comment = NA}
+1/vif(model)
+```
+
+None of the values have tolerance that is lower than 0.2, which indicates absence of collinearity.
+
+Assumption of no multicollinearity has been met.
+
+## Assessing the assumption of independence
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+dwt(model)
+```
+The D-W Statistic is less than 1, which indicates a positive correlation between adjacent residuals, and also a case of concern. The value of p-value is 0, and is less than 0.05, which indicates evidence to reject the null-hypothesis (there is no correlation among the residuals). The assumption of independence hasn't been met.
+
+## Checking assumptions about the residuals
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+plot(model)
+```
+
+It looks like the degree of residuals scattering around zero is not the same for all fitted values (first graph) but close to the normal pattern. When we look at the Q-Q plot we can see that not all of the points on the Q-Q plot lie on the straight line, which shows abnormal distribution of the residuals. 
+
+### Conclusions about the first model:
+
+Even though the model overall looks good, some of the assumptions have been violated. I could draw conclusions about this particular data but not generalize my findings beyond this sample since the assumptions were violated. 
+
+# Next Step:
+
+The biggest concern about the previous model was the violation of the assumption of independence which could deteriorate the results of multiple regression. In order to get valid results, I will attempt to see why the assumption of Independence was violated.  Usually the way data was collected is to blame. After looking at my data closely I realized that the same country with different values for the rest of the variables is analyzed for years 2000-2015, which means it is analyzed 16 times. Even though the values for each year for all of the variables are usually different they are still very close to the previously analyzed year. I believe this caused the possible lack of independence. I found that [Handbook of Biological Statistics](http://www.biostathandbook.com/independence.html) was a good reading for this topic. 
+
+
+## Solution:
+
+I am going to create a new data frame with observations for the most recent year. Since year 2015 is the most recent one but it has a lot of observations that are missing, I will use year 2014. 
+
+## New data frame created with the help of filtering by year (2014) only for 5 variables I chose before and without missing values
+
+```{r echo=FALSE, results='hide',include = FALSE, message = FALSE, comment = NA}
+LED_new<-filter(LED,Year==2014)
+head(LED_new)
+```
+
+
+```{r echo=FALSE, results='hide',include = FALSE, message = FALSE, comment = NA}
+summary(LED_new)
+```
+
+```{r echo=FALSE, results='hide',include = FALSE, message = FALSE, comment = NA}
+LED_new_subset<-LED_new[ ,c("Alcohol", "Life.expectancy", "Total.expenditure", "BMI", "Schooling")]
+data_by_column_LED<- LED_new[complete.cases(LED_new_subset), ] # Omit NAs by columns
+head(data_by_column_LED)
+data_by_column_LED
+```
+
+```{r echo=FALSE, results='hide',include = FALSE, message = FALSE, comment = NA}
+newdataset_LED<- data_by_column_LED[,c(4,7,11,14,22)]
+head(newdataset_LED)
+```
+
+*10 highest values for Life.expectancy*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Life_expectancy_tophead<- head(newdataset_LED[order(-newdataset_LED$Life.expectancy),], 10)
+Life_expectancy_tophead[,1]
+```
+
+*10 lowest values for Life.expectancy*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Life_expectancy_bottom<- head(newdataset_LED[order(newdataset_LED$Life.expectancy),], 10)
+Life_expectancy_bottom[,1]
+```
+
+*Alcohol, recorded per capita (15+) consumption (in litres of pure alcohol).*
+The highest values seem to be correct after looking up some information about alcohol consumption in Estonia, Belarus and Lithuania. 
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Alcohol_tophead<- head(newdataset_LED[order(-newdataset_LED$Alcohol),], 10)
+Alcohol_tophead[,2]
+```
+
+*10 lowest values for Alcohol consumption.* The values seem to be correct after checking information on countries like Mauritania (the dry country), Malawi, and Maldives and etc. 
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Alcohol_bottom<- head(newdataset_LED[order(newdataset_LED$Alcohol),], 10)
+Alcohol_bottom[,2]
+```
+
+*10 highest values for BMI.* These values are way too high. According to [WHO](https://en.wikipedia.org/wiki/Body_mass_index) BMI over 40 is class III obese. I will be removing extreme values.
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+BMI_tophead<- head(newdataset_LED[order(-newdataset_LED$BMI),], 10)
+BMI_tophead[,3]
+```
+
+*10 lowest values for BMI*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+BMI_bottom<- head(newdataset_LED[order(newdataset_LED$BMI),], 10)
+BMI_bottom[,3]
+```
+
+These numbers are way too low. BMI of less than 18.5 is considered underweight. I will be removing values below 10 as they are highly unlikely to be correct. 
+
+*10 highest values for Health expenditure*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Total.expenditure_tophead<- head(newdataset_LED[order(-newdataset_LED$Total.expenditure),], 10)
+Total.expenditure_tophead[,4]
+```
+
+*10 lowest values for Health expenditure*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Total.expenditure_bottom<- head(newdataset_LED[order(newdataset_LED$Total.expenditure),], 10)
+Total.expenditure_bottom[,4]
+```
+
+*10 highest values for Schooling*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+Schooling_tophead<- head(newdataset_LED[order(-newdataset_LED$Schooling),], 10)
+Schooling_tophead[,5]
+```
+
+These values seem to be within possible boundaries.
+
+*10 lowest values for Schooling*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+
+Schooling_bottom<- head(newdataset_LED[order(newdataset_LED$Schooling),], 10)
+Schooling_bottom[,5]
+```
+
+These values seem to be within possible boundaries.
+
+## Data frame after removing the extreme values of BMI
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+newdataset_LED2<-filter(newdataset_LED, BMI > 10 & BMI<55)
+head(newdataset_LED2)
+```
+
+## Creating a heatmap for correlation coefficients. 
+
+I will have a better idea of the correlations after using summary function of the model, because the other variables are held constant when we get  correlation coefficients seen in the output from the summary function. 
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+pheatmap(cor(newdataset_LED2))
+```
+
+## To visualize relationships between all of the variables with Life expectancy I created these scatterplots.
+
+```{r echo=FALSE, comment = NA}
+p1<-ggplot(newdataset_LED2, aes(y = newdataset_LED2$Life.expectancy, x = newdataset_LED2$Alcohol))+
+  geom_jitter(alpha = 0.1)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect.vs Alcohol")+
+  labs(x = "Alcohol consumption", y = "Life expectancy")
+
+p2<-ggplot(newdataset_LED2, aes(y = newdataset_LED2$Life.expectancy, x = newdataset_LED2$BMI))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect. vs BMI")+
+  labs(x = "BMI", y = "Life expectancy")
+
+p3<-ggplot(newdataset_LED2, aes(y = newdataset_LED2$Life.expectancy, x = newdataset_LED2$Total.expenditure))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.exp.vs expenditure")+
+  labs(x = "Health expenditure", y = "Life expectancy")
+
+p4<-ggplot(newdataset_LED2, aes(y = newdataset_LED2$Life.expectancy, x = newdataset_LED2$Schooling))+
+  
+  geom_jitter(alpha = 0.2)+
+  geom_smooth(method = "lm")+
+  ggtitle("Life.expect.vs Schooling ")+
+  labs(x = "Schooling", y = "Life expectancy")
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
+## Creating a new model and looking at the summary results
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+model4<-lm(Life.expectancy~BMI+Schooling+Alcohol+Total.expenditure, data=newdataset_LED2)
+summary(model4)
+```
+
+Looks like the *p*-values for the variables Alcohol and Total.expenditure are greater than .05 which means that there is no sufficient evidence to determine that effect exists  for these variables at the population level. 
+
+The variables BMI and Schooling are statistically significant.
+
+Since it is pretty common to use *p*-values of the coefficients to decide which values should be in the final model and which shouldn't, I am keeping BMI and Schooling for my final model. 
+
+## Final model
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+model5<-lm(Life.expectancy~BMI+Schooling, data=newdataset_LED2)
+summary(model5)
+```
+
+The F-statistic *p*-value of 1.315e-12 is highly significant, 
+which implies at least one of the independent variables is significantly related to the dependent variable.
+R squared statistic explains how much variability in the dependent variable 
+is accounted for by the independent variables. In my case it is **49.5%**
+The *adjusted* R squared at **48.3%** is pretty close to the value of *R squared*. The difference is small, about **1.2%**.
+The shrinkage means that the model derived from a population and not a sample would account for 1.2% less variance in the outcome.
+Using **Stein's formula**, I get the version of R squared that equals to `r 1-round((1.025*1.025*1.012)*0.5046,3)`.
+The difference between this value and the value of unadjusted R squared is 0.495-0.463= 0.032, or about **3.2%** percent.
+This value helps me with cross-validation of the model. The value is similar to the observed value of R squared, which is a good indicator of a cross validity of the model.
+
+**Standardized betas**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+lm.beta(model5)
+```
+
+**Schooling**. Standardized beta is `r round(data.matrix(lm.beta(model5))[2],3)`.
+This value shows that when Schooling increases by one standard deviation (`r round(sd(newdataset_LED2$Schooling), 2)`),
+life expectancy increases by `r round(data.matrix(lm.beta(model5))[2],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset_LED2$Life.expectancy), 2)`, so the change that will be observed is about (`r round(sd(newdataset_LED2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model5))[2],3)`)
+
+**BMI**. Standardized beta is `r round(data.matrix(lm.beta(model5))[1],3)`. This value shows that when BMI increases by one standard deviation (`r round(sd(newdataset_LED2$BMI), 2)`),
+life expectancy increases by `r round(data.matrix(lm.beta(model5))[1],3)` standard deviations. 
+Standard deviation for Life.expectancy is `r round(sd(newdataset_LED2$Life.expectancy), 2)`, so the change that will be observed is `r round(sd(newdataset_LED2$Life.expectancy), 2) *  round(data.matrix(lm.beta(model5))[1],3)`.
+
+## Checking the confidence intervals
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+confint(model5)
+```
+
+*Printing the estimated coefficients so it is easier to compare the results*
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+summary(model5)$coefficient
+```
+
+None of the confidence intervals cross 0 which means that the predictors are related to the outcome. The confidence intervals are small, which is an indicator of a good model. 
+
+## Testing for multicollinearity
+
+**VIF**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+vif(model5)
+```
+
+None of the VIF are greater than 10.
+
+**Average of VIF**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+mean(vif(model5))
+```
+
+The average of VIF values is not substantially greater than 1, which helps us make a conclusion that there is no collinearity within the data.
+
+**Tolerance**
+```{r echo=FALSE, message = FALSE, comment = NA}
+1/vif(model5)
+```
+
+None of the values have tolerance that is lower than 0.2, which indicates absence of collinearity.
+
+Assumption of no multicollinearity has been met.
+
+## Assessing the assumption of independence
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+dwt(model5)
+```
+
+DW statistic is close to 2 and *p*-value is greater than .05, which indicate that assumption of independence has been met. 
+
+## Casewise diagnostics to identify outliers or influential cases
+
+Showing some of it:
+  
+```{r echo=FALSE, message = FALSE, comment = NA}
+
+newdataset_LED2$residuals<-resid(model5)
+newdataset_LED2$standardized.residuals<-rstandard(model5)
+newdataset_LED2$studentized.residuals<-rstudent(model5)
+newdataset_LED2$cooks.distance<-cooks.distance(model5)
+newdataset_LED2$dfbeta<-dfbeta(model5)
+newdataset_LED2$dffit<-dffits(model5)
+newdataset_LED2$leverage<-hatvalues(model5)
+newdataset_LED2$covariance.ratios<-covratio(model5)
+new_newdataset_LED2<-newdataset_LED2[,c("Life.expectancy", "BMI", "Schooling",  "residuals", "standardized.residuals", "studentized.residuals", "cooks.distance", "dfbeta", "dffit", "leverage", "covariance.ratios")]
+
+
+head(new_newdataset_LED2)
+```
+
+### Looking at the cases with large residuals and identifying the quantity:
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+newdataset_LED2$large.residuals<-newdataset_LED2$standardized.residuals>2 | newdataset_LED2$standardized.residuals< -2
+
+```
+
+The number of cases with large residuals is `r sum(newdataset_LED2$large.residuals)`.
+
+The calculated number represents `r round(sum(newdataset_LED2$large.residuals)*100/83,2)`% of cases which means that the sample is within 1% of what I would expect. 
+
+## Leverage, cooks distance, covariance ratios
+
+**cooks.distance**
+
+Cases with cooks.distance greater than 1:
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+new<-newdataset_LED2[newdataset_LED2$large.residuals,c("Life.expectancy",  "BMI", "Schooling","standardized.residuals", "cooks.distance", "leverage", "covariance.ratios" )]
+
+new[new$cooks.distance>1, c("Life.expectancy",  "BMI", "Schooling", "cooks.distance")]
+
+```
+
+ There are no cases with cooks.distance greater than 1.
+ 
+**leverage**
+
+The average leverage would be calculated as the number of predictors(2) +1 , divided by the size of the sample(83), which equals to `r (2+1)/83`. We are looking for the value that is at least 3 times greater than the average leverage (a value that is greater than `r round(3*(3/83), 2)`)
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+new[new$leverage>0.11, c("Life.expectancy", "BMI","Schooling", "leverage")]
+
+```
+
+It looks like all the cases are within the boundary of three times the average.
+
+**Looking at covariance ratios**
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+cov_new<-new[new$covariance.ratios<0.89 | new$covariance.ratios>1.11, c ("Life.expectancy",  "BMI", "Schooling","covariance.ratios")]
+cov_new
+```
+
+Some of the values barely exceed the boundaries (0.89 - 1.11).  No cases of real concern especially with no cases with cooks.distance greater than 1. 
+
+## Assesing assumptions about residuals
+
+```{r echo=FALSE, message = FALSE, comment = NA, warning = FALSE}
+newdataset_LED2$fitted<-model5$fitted.values
+
+ggplot(newdataset_LED2,aes(fitted, studentized.residuals))+
+         geom_point()+
+         geom_smooth(method = "lm", color = "Blue")+
+         labs(x = 'Fitted values', y = 'Studentized residuals')+
+         ggtitle("Studentized residuals vs fitted values")
+```
+
+
+```{r echo=FALSE, message = FALSE, comment = NA, warning = FALSE}
+qplot(sample = newdataset_LED2$studentized.residuals, stat = "qq")+
+    labs(x="Theoretical values", y="Observed values")+
+     ggtitle("Q-Q plot of studentized residuals")
+```
+
+It appears that the Studentized   residuals   are   normally   distributed,   the   scatters for the most part are on  or  very close  to  the  normal  distribution line.
+
+
+```{r echo=FALSE, message = FALSE, comment = NA}
+ggplot(newdataset_LED2,aes(fitted, residuals))+
+  geom_point()+
+  geom_smooth(method = "lm", color = "Blue")+
+  ggtitle("Residuals vs Fitted")
+```
+
+Looking at the scatterplot of Residuals vs Fitted values I can tell that there is no  evidence  of  nonlinear  pattern  to  the residuals.
+
+# Conclusion about the model
+
+After cross-validating the final model with the help of Stein's formula above, and assessing if all of the necessary assumptions have been met, I can tell that the model looks good without violations of assumptions, which makes me believe the results would be more correct than for the first model I built. 
+
+
+# Implications
+
+**1. What are the possible factors and what areas (social, economic, health and etc.) could be influencing variations in life expectancy?**
+The two factors that seem to have a significant relationship with the length of life expectancy turned out to be **Schooling** which belongs to the social factor, and **BMI** which is associated with the health factor.
+
+**2. Is there a negative relationship between life expectancy and alcohol consumption?**
+No significant effect of the variable Alcohol was discovered. I can't conclude if Alcohol positively or negatively affected life expectancy from the analysis I performed since the results were not statistically significant.
+
+**3. Is there a positive relationship between life expectancy and schooling?**
+This analysis makes me believe that  there is a significant positive relationship between **Schooling** and the length of life expectancy.
+
+**4. Is there a negative relationship between life expectancy and population density?**
+The data weren't letting me use this variable where I wouldn't be concerned about incorrect results. There were a lot of missing values for this variable, and a lot of the values were invalid. The analysis for this variable wasn't performed in the end.
+
+**5. What is the relationship between BMI and life expectancy?**
+The results of the estimated coefficients that I got with the help of my model indicate that there is a positive relationship between BMI and life expectancy. The discrepancy between high values for BMI and gains in life expectancy at first seemed confusing because my initial belief about BMI is that the greater, the worse the effects might be for the life expectancy. After reading a few studies( [Association of All-Cause Mortality With Overweight and Obesity Using Standard Body Mass Index Categories](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4855514/), [How Much Should We Weigh for a Long and Healthy Life Span? The Need to Reconcile Caloric Restriction versus Longevity with Body Mass Index versus Mortality Data](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4115619/), [Body-mass index and cause-specific mortality in 900 000 adults: collaborative analyses of 57 prospective studies](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2662372/)). it became evident that the variable BMI is more complicated than it seems. There are a few main ranges for BMI (underweight, normal, overweight and obese), and for each of these ranges the effects on the life expectancy could diifer. For the underweight (especially for malnourished, or those whose weight loss happened due to effect of deseases) the increase in BMI might mean longer life expectancy. For normal BMI range, according to the studies the weight increase that stays within the normal range is known not to effect the life expectancy significantly (only a small increase in life expectancy is observed). It is the overweight and obese categories that might benefit from the decrease of BMI since increase of weight affects the likelihood of getting diseases associated with increased mortality rates, at the same time the increased effective treatments of the diseases known to be caused by increased weight in the obesity range also changes the overall picture of the effect of BMI on life expectancy. The quality of life might be signficantly worse for people with the BMI in the overweight range but their life expectancy is known to have benefitted from the advanced treatments. After researching these findings with the help of the study [Obesity and Trends in Life Expectancy](https://www.hindawi.com/journals/jobe/2012/107989/), I had a better understanding why I got the results that I didn't expect. It also makes sense to suggest to look at different ranges of BMI separately to get a clear picture of the findings and possible reasons for the findings. 
+
+**6. Is there a positive relationship between expenditure on health and life expectancy?**
+No significant effect of the variable Total.expenditure was discovered. I can't conclude if expenditure on health positively or negatively affected life expectancy from the analysis I performed because the effect was not statistically significant. 
+
+**7. What could be done to prolong life expectancy?**
+I will answer this by trying to predict the variable of life expectancy by comparing a few predictions:
+
+With the value of Schooling = 15, and BMI = 20, 
+
+*Life expectancy* would be 
+
+```{r echo=FALSE, message = FALSE, comment = NA, warning=FALSE}
+newdata = data.frame(Schooling=15,  BMI = 20)
+cat(round(predict(model5, newdata) )) 
+```
+
+With the value of Schooling  = 19, and BMI = 20,
+
+*Life expectancy* would be
+
+```{r echo=FALSE, message = FALSE, comment = NA, warning=FALSE}
+newdata1 = data.frame(Schooling=19,  BMI = 20)
+cat(round(predict(model5, newdata1)))
+```
+
+With the value of Schooling  = 15, and BMI = 24,
+
+*Life expectancy* would be
+
+```{r echo=FALSE, message = FALSE, comment = NA, warning=FALSE}
+newdata2 = data.frame(Schooling=15,  BMI = 24)
+cat(round(predict(model5, newdata2) ))
+```
+
+It looks like incraesing the level of education would possibly increase life expectancy. 
+The same could be told about BMI, but it is important to remember that final conclusion yet to be made about BMI, beacuse it is a complicated variable, and analyzing seperate ranges of BMI might provide more insights.
+
+## Limitations
+The project has some limitations. Even though it provides results for effects of BMI and Schooling, it doesn’t explain other factors that could be influencing life expectancy. Considering performing the analyzes of other variables from the data set can allow for discovery of additional factors influencing life expectancy.
+ 
+Incorrect data points present in the data set and missing values significantly reduced the amount of observations available thus reducing the possibility of accounting for all of the information for the variables. Finding the original data set and verifying the values would help with substituting the incorrect values of the secondary data set analyzed in the project.
+
+The project only covered the values for the year of 2014. There are 15 more years which the project hasn’t analyzed. Further analysis of the rest of the years and comparison of the results could help with confirming or questioning the validity of the results obtained so far, or identifying the trends of effects on the life expectancy over the given time frame.
+
+Looking at different ranges of BMI separately could help with getting a clearer picture of the findings and more possible reasons for explanation of the results of this project.
+
+## Conclusion
+
+This project examined the hypotheses about the relationships between factors of Schooling, BMI, expenditure on health, alcohol and life expectancy with the help of multiple regression analysis. Since the effect of only two of the variables I analyzed turned out to be statistically significant, I could only suggest that if we increase the number of years spent on education, our life expectancy might increase. The same is true for BMI, but the increase seen is a lot smaller than that for Schooling. Also, as mentioned above BMI is a complicated variable and its effect might possibly depend on which range of BMI we are looking at, which makes Schooling the variable whose results seem to be the most influential. It is important to remember that the relationships discovered do not imply causation.
+
+
+
+ 
+
+
+
+
+
+
