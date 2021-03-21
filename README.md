@@ -7,6 +7,9 @@
 Relying on the [data](https://www.kaggle.com/kumarajarshi/life-expectancy-who) put together by WHO and the United Nations, this project examined the hypotheses about the relationships between such factors as education, BMI, population density, expenditure on health, alcohol consumption and the variable life expectancy with the help of multiple regression analysis. 
 Assumptions of Multiple Linear Regression models were tested. 
 
+## Development:
+Programming langauge - R. 
+
 ## Details 
 
 Assumption of Independence and assumption of normality of residuals’ distribution were violated for the first regression model.
