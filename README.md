@@ -8,7 +8,7 @@ Relying on the [data](https://www.kaggle.com/kumarajarshi/life-expectancy-who) p
 Assumptions of Multiple Linear Regression models were tested. 
 
 ## Development:
-Programming langauge - R. 
+Programming langauge - R. OS - Windows 10 Home.
 
 ## Details 
 
