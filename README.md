@@ -20,7 +20,7 @@ After performing some research on the possible causes of the independence violat
 
 ## Final model
 
-![final model](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/final_model.PNG)
+![final model](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/final.PNG)
 
 The two factors that seem to have a significant positive relationship with life expectancy are “Schooling” which belongs to the social factor, and “BMI” which is associated with the health factor. 
 The variables could be used for predictions of life expectancy with the help of the model. 
