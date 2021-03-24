@@ -1,29 +1,26 @@
-# Life Expectancy Prediction Project with R
 
-![picture](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/life_expectancy_pic%20(1).jpg)
+![picture](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/predictions.gif)
 
 ## Project description
 
 Relying on the [data](https://www.kaggle.com/kumarajarshi/life-expectancy-who) put together by WHO and the United Nations, this project examined the hypotheses about the relationships between such factors as education, BMI, population density, expenditure on health, alcohol consumption and the variable life expectancy with the help of multiple regression analysis. 
 Assumptions of Multiple Linear Regression models were tested. 
 
-## Development:
-Programming langauge - R. OS - Windows 10 Home.
+## Development
+
+- Programming langauge - R. 
+- OS - Windows 10 Home.
 
 ## Details 
 
 Assumption of Independence and assumption of normality of residuals’ distribution were violated for the first regression model.
-
-![violations](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/violations.PNG)
-
-After performing some research on the possible causes of the independence violation, the decision to test the hypotheses including the data for only one year was made. 
+After performing some research on the possible causes of the independence violation, the decision to test the hypotheses including the data for only one year (2014) was made. 
 
 ## Final model
 
 ![final model](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/final.PNG)
 
 The two factors that seem to have a significant positive relationship with life expectancy are “Schooling” which belongs to the social factor, and “BMI” which is associated with the health factor. 
-The variables could be used for predictions of life expectancy with the help of the model. 
 
 ## Project limitations and considerations for the future
 
