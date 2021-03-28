@@ -1,10 +1,14 @@
 
 ![picture](https://github.com/natacasey/Life_Expectancy_Prediction_Project_with_R/blob/master/_assets/predictions.gif)
 
-## Project description
+## Project description and Data
 
 Relying on the [data](https://www.kaggle.com/kumarajarshi/life-expectancy-who) put together by WHO and the United Nations, this project examined the hypotheses about the relationships between such factors as education, BMI, population density, expenditure on health, alcohol consumption and the variable life expectancy with the help of multiple regression analysis. 
 Assumptions of Multiple Linear Regression models were tested. 
+
+## Documentation
+
+All of the documentation can be found in the docs folder.
 
 ## Development
 
